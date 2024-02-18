@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
-from FamilyApp.serializer import UserRegistrationSerializer ,UserLoginSerializer,UserProfileEditSerializer
+from FamilyApp.serializer import UserRegistrationSerializer ,UserLoginSerializer,UserProfileEditSerializer,UserProfileSerializer,UserChangePasswordSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from FamilyApp.renderers import UserRenderer
@@ -9,6 +9,8 @@ from django.contrib.auth import authenticate,login
 from FamilyApp.models import FamilyMember
 from rest_framework.permissions import IsAuthenticated,IsAdminUser
 import requests
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.db.models import ProtectedError
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -45,13 +47,13 @@ class UserRegistrationView(APIView):
                 },status=status.HTTP_201_CREATED)
         else:
             errors = serializer.errors
-            error_messages = {}
-            for field, message in errors.items():
-                error_messages[field] = message[0]  # Only take the first error message
+            error_messages = []
+            for field, messages in errors.items():
+                error_messages.append(f"{field}: {messages[0]}")  # Concatenate field name and error message
             return Response({
                 "success": False,
                 "status": 400,
-                "message": error_messages
+                "message": "\n".join(error_messages)  # Join error messages with newline character
             }, status=status.HTTP_400_BAD_REQUEST)
         
 
@@ -89,13 +91,13 @@ class UserLoginView(APIView):
 
         else:
             errors = serializer.errors
-            error_messages = {}
-            for field, message in errors.items():
-                error_messages[field] = message[0]  # Only take the first error message
+            error_messages = []
+            for field, messages in errors.items():
+                error_messages.append(f"{field}: {messages[0]}")  # Concatenate field name and error message
             return Response({
                 "success": False,
                 "status": 400,
-                "message": ""
+                "message": "\n".join(error_messages)  # Join error messages with newline character
             }, status=status.HTTP_400_BAD_REQUEST)
         
 
@@ -188,3 +190,122 @@ class PhotoUpload(APIView):
                     'status': status.HTTP_200_OK,
                     'message': "DP updated successfully",
                 }, status=status.HTTP_200_OK) 
+    
+
+class UserProfileView(APIView):
+    renderer_classes = [UserRenderer]
+    permission_classes = [IsAuthenticated]
+    def get(self, request, format=None):
+        serializer = UserProfileSerializer(request.user)
+        
+        return Response(serializer.data,status= status.HTTP_200_OK)
+    
+
+class UserEditView(APIView):
+    
+    # IsAuthenticated applited
+    renderer_classes = [UserRenderer]
+    permission_classes = [IsAuthenticated]
+    # def get(self, request, format=None):
+    #     serializer = UserProfileSerializer(request.user)
+        
+    #     return Response(serializer.data,status= status.HTTP_200_OK)
+
+    def put(self,request):
+        serializer = UserProfileEditSerializer(request.user)
+        userData=serializer.data
+        user_id = userData['id']
+        try:
+            user=FamilyMember.objects.get(pk=user_id)
+        except FamilyMember.DoesNotExist:
+             return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        serializer=UserProfileEditSerializer(user,data=request.data,  partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        
+
+        else:
+            errors = serializer.errors
+            error_messages = []
+            for field, messages in errors.items():
+                error_messages.append(f"{field}: {messages[0]}")  # Concatenate field name and error message
+            return Response({
+                "success": False,
+                "status": 400,
+                "message": "\n".join(error_messages)  # Join error messages with newline character
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class UserDeleteView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    renderer_classes = [UserRenderer]
+
+    def delete(self, request):
+        serializer = UserProfileEditSerializer(request.user)
+        userData=serializer.data
+        user_id = userData['id']
+        
+        try:
+            user = FamilyMember.objects.get(id=user_id)
+        except FamilyMember.DoesNotExist:
+            return Response({
+                    'success': False,
+                    'status': status.HTTP_404_NOT_FOUND,
+                    'message': f"User Not Found or Invalid User",
+                }, status=status.HTTP_404_NOT_FOUND) 
+
+        
+
+        try:
+            user.delete()
+        except ProtectedError as e:
+            return Response({
+                    'success': False,
+                    'status': status.HTTP_403_FORBIDDEN,
+                    'message': f'User {user.full_name} cannot be deleted because they have data in other DB.',
+                }, status=status.HTTP_403_FORBIDDEN) 
+
+        return Response({
+                    'success': True,
+                    'status': status.HTTP_200_OK,
+                    'message': f'{user.full_name} deleted From Family',
+                }, status=status.HTTP_200_OK) 
+    
+
+class UserPasswordChangeView(APIView):
+    renderer_classes = [UserRenderer]
+    permission_classes = [IsAuthenticated]
+    def post(self, request, format=None):
+
+        required_fields = ['password', 'password2']
+
+        for field in required_fields:
+            if field not in request.data or not request.data[field]:
+                return Response({
+                    'success': False,
+                    'status': status.HTTP_400_BAD_REQUEST,
+                    'message': f'{field} is missing or empty',
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+        serializer=UserChangePasswordSerializer(data=request.data,context={'user':request.user})
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'success': True, 
+                'status': status.HTTP_200_OK, 
+                'message': 'Password changed successfully'}, status=status.HTTP_200_OK)
+        else:
+            errors = serializer.errors
+            error_messages = []
+            for field, messages in errors.items():
+                error_messages.append(f"{messages[0]}")
+
+            return Response({'success': False,
+                              'status': status.HTTP_400_BAD_REQUEST, 
+                               "message": "\n".join(error_messages)
+                              }, status=status.HTTP_400_BAD_REQUEST)
