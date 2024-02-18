@@ -37,12 +37,14 @@ class FamilyMemberManager(BaseUserManager):
 
 
 class FamilyMember(AbstractBaseUser, PermissionsMixin):
+    username = None
     full_name = models.CharField(max_length=100, null=False)
     email = models.EmailField(db_index=True, unique=True, null=False, max_length=254)
     user_profile_img = models.URLField(blank=True, null=True)
     phone_no = models.CharField(db_index=True, max_length=20, null=False, unique=True)
     place_of_birth = models.CharField(max_length=100, blank=True)
     profession = models.CharField(max_length=100, blank=True)
+    user_profile_img = models.URLField(blank=True,null=True)
 
     date_of_birth = models.DateField(null=False, default=date.today)
     current_address = models.CharField(max_length=255, null=False, default='')
@@ -52,6 +54,7 @@ class FamilyMember(AbstractBaseUser, PermissionsMixin):
     is_alive = models.BooleanField(default=True) # must needed, otherwise you won't be able to loginto django-admin.
     is_active = models.BooleanField(default=True) # must needed, otherwise you won't be able to loginto django-admin.
     is_superuser = models.BooleanField(default=False) # this field we inherit from PermissionsMixin.
+    is_married = models.BooleanField(default=False) # this field we inherit from PermissionsMixin.
 
     objects = FamilyMemberManager()
 

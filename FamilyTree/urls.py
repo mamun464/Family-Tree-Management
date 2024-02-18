@@ -8,6 +8,7 @@ urlpatterns = [
    
    path('admin/', admin.site.urls),
    path('api/member/',include('FamilyApp.urls')),
+   
 #    path('api/events/',include('eventApp.urls')),
    
    
