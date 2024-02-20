@@ -28,7 +28,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         print('Email-From-Validation:', email)
         #validate password and confirm password is same
         if FamilyMember.objects.filter(email=email).exists():
-            raise forms.ValidationError(f"{email} with this email already exists22.")
+            raise forms.ValidationError(f"{email} with this email already exists.")
         #validate password and confirm password is same
         if(password != password2):
             raise serializers.ValidationError("Confirm password not match with password!")
@@ -70,10 +70,33 @@ class UserProfileEditSerializer(serializers.ModelSerializer):
           model = FamilyMember
           exclude = ['is_staff', 'is_active', 'is_superuser']
 
+
 class UserProfileSerializer(serializers.ModelSerializer):
      class Meta:
           model = FamilyMember
           exclude = ['password']
+
+# class UserChangePasswordSerializer(serializers.Serializer):
+#     password = serializers.CharField(style={'input_type': 'password'}, write_only=True)
+#     password2 = serializers.CharField(style={'input_type': 'password'}, write_only=True)
+     
+#     class Meta:
+#             fields = ['password', 'password2']
+#     def validate(self, attrs):
+#         password = attrs.get('password')
+#         password2 = attrs.get('password2')
+
+#         user = self.context.get('user')
+
+#         if(password != password2):
+#             raise serializers.ValidationError("Confirm password not match with password!")
+        
+
+#         user.set_password(password)
+#         user.save()
+#         return attrs
+
+
 
 class UserChangePasswordSerializer(serializers.Serializer):
     password = serializers.CharField(style={'input_type': 'password'}, write_only=True)

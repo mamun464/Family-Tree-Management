@@ -277,10 +277,9 @@ class UserDeleteView(APIView):
     
 
 class UserPasswordChangeView(APIView):
-    renderer_classes = [UserRenderer]
     permission_classes = [IsAuthenticated]
-    def post(self, request, format=None):
 
+    def post(self, request, format=None):
         required_fields = ['password', 'password2']
 
         for field in required_fields:
@@ -290,22 +289,25 @@ class UserPasswordChangeView(APIView):
                     'status': status.HTTP_400_BAD_REQUEST,
                     'message': f'{field} is missing or empty',
                 }, status=status.HTTP_400_BAD_REQUEST)
-            
-        serializer=UserChangePasswordSerializer(data=request.data,context={'user':request.user})
 
-        if serializer.is_valid():
+        serializer = UserChangePasswordSerializer(data=request.data, context={'user': request.user})
+
+        try:
+            serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response({
                 'success': True, 
                 'status': status.HTTP_200_OK, 
-                'message': 'Password changed successfully'}, status=status.HTTP_200_OK)
-        else:
+                'message': 'Password changed successfully'
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
             errors = serializer.errors
             error_messages = []
             for field, messages in errors.items():
                 error_messages.append(f"{messages[0]}")
 
-            return Response({'success': False,
-                              'status': status.HTTP_400_BAD_REQUEST, 
-                               "message": "\n".join(error_messages)
-                              }, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'success': False,
+                'status': status.HTTP_400_BAD_REQUEST, 
+                'message': "\n".join(error_messages)
+            }, status=status.HTTP_400_BAD_REQUEST)
