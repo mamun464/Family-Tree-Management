@@ -43,7 +43,7 @@ class UserRegistrationView(APIView):
                 'status':200,
                 'message': 'Registration successful',
                 'new_user': serializer.data,
-                 'token':token ,
+                'token':token ,
                 },status=status.HTTP_201_CREATED)
         else:
             errors = serializer.errors
@@ -85,7 +85,7 @@ class UserLoginView(APIView):
             login(request, user)
             token=get_tokens_for_user(user)
             return Response({
-                'success': False,
+                'success': True,
                 'status': status.HTTP_200_OK,
                 'message': f'Successfully logged in',
                 'token':token,
