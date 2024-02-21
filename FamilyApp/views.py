@@ -85,7 +85,9 @@ class UserLoginView(APIView):
             login(request, user)
             token=get_tokens_for_user(user)
             return Response({
-                'msg': 'Login successful',
+                'success': False,
+                'status': status.HTTP_200_OK,
+                'message': f'Successfully logged in',
                 'token':token,
                 },status=status.HTTP_200_OK)
 
