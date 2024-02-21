@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from FamilyApp.models import FamilyMember
+from FamilyApp.models import FamilyMember,Relationship
 from django import forms
 import datetime
 from django.contrib.auth import authenticate
@@ -118,3 +118,48 @@ class UserChangePasswordSerializer(serializers.Serializer):
         user.set_password(password)
         user.save()
         return attrs
+    
+
+class CreateConnectionSerializer(serializers.ModelSerializer):
+    # related_person = serializers.PrimaryKeyRelatedField(queryset=FamilyMember.objects.all())
+
+    class Meta:
+        model = Relationship
+        fields = ['related_person', 'relationship_type']
+
+    def validate_related_person(self, value):
+        user = self.context['request'].user
+        if value == user:
+            raise serializers.ValidationError("You cannot create a relationship with yourself.")
+        
+        existing_connections = Relationship.objects.filter(person=user, related_person=value)
+        if existing_connections.exists():
+            raise serializers.ValidationError("Connection already exists with this person.")
+        
+
+        return value
+        
+        
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        validated_data['person'] = user
+        return super().create(validated_data)
+    
+
+class RelatedPersonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FamilyMember
+        exclude = ['password']
+    
+class ConnectionSerializer(serializers.ModelSerializer):
+    related_person_details = RelatedPersonSerializer(source='related_person', read_only=True)
+
+    class Meta:
+        model = Relationship
+        fields = ['id','relationship_type','related_person_details']
+
+class FamilyMemberSearchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FamilyMember
+        exclude = ['password']

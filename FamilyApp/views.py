@@ -1,12 +1,12 @@
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
-from FamilyApp.serializer import UserRegistrationSerializer ,UserLoginSerializer,UserProfileEditSerializer,UserProfileSerializer,UserChangePasswordSerializer
+from FamilyApp.serializer import UserRegistrationSerializer ,UserLoginSerializer,UserProfileEditSerializer,UserProfileSerializer,UserChangePasswordSerializer,CreateConnectionSerializer,ConnectionSerializer,FamilyMemberSearchSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from FamilyApp.renderers import UserRenderer
 from django.utils import timezone
 from django.contrib.auth import authenticate,login
-from FamilyApp.models import FamilyMember
+from FamilyApp.models import FamilyMember,Relationship
 from rest_framework.permissions import IsAuthenticated,IsAdminUser
 import requests
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -278,6 +278,7 @@ class UserDeleteView(APIView):
 
 class UserPasswordChangeView(APIView):
     permission_classes = [IsAuthenticated]
+    renderer_classes = [UserRenderer]
 
     def post(self, request, format=None):
         required_fields = ['password', 'password2']
@@ -311,3 +312,166 @@ class UserPasswordChangeView(APIView):
                 'status': status.HTTP_400_BAD_REQUEST, 
                 'message': "\n".join(error_messages)
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class CreateConnectionView(APIView):
+    permission_classes = [IsAuthenticated]
+    renderer_classes = [UserRenderer]
+
+    def post(self, request, format=None):
+        required_fields = ['related_person', 'relationship_type']
+
+        for field in required_fields:
+            if field not in request.data or not request.data[field]:
+                return Response({
+                    'success': False,
+                    'status': status.HTTP_400_BAD_REQUEST,
+                    'message': f'{field} is missing or empty',
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            related_person_id = int(request.data['related_person'])
+            
+        except ValueError:
+            return Response({
+                    'success': False,
+                    'status': status.HTTP_400_BAD_REQUEST,
+                    'message': f'Related Person ID May Not be Integer',
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            related_person=FamilyMember.objects.get(pk=related_person_id)
+        except FamilyMember.DoesNotExist:
+             return Response({
+                    'success': False,
+                    'status': status.HTTP_404_NOT_FOUND,
+                    'message': f'Related Person is  Not Valid',
+                }, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            user_id = request.user.id
+            person = FamilyMember.objects.get(pk=user_id)
+        except FamilyMember.DoesNotExist:
+             return Response({
+                    'success': False,
+                    'status': status.HTTP_404_NOT_FOUND,
+                    'message': f'Login User Not Valid',
+                }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Instantiate the serializer with data and context
+        serializer = CreateConnectionSerializer(data=request.data, context={'request': request})
+
+        # Check if the data is valid
+        if serializer.is_valid():
+            try:
+                serializer.save()
+                return Response({
+                    'success': True, 
+                    'status': status.HTTP_200_OK, 
+                    'message': f'Connection established with {related_person.full_name}'
+                }, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({
+                    'success': False,
+                    'status': status.HTTP_400_BAD_REQUEST, 
+                    'message': f'Error occurred while saving connection: {str(e)}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # Return response with validation errors
+            errors = serializer.errors
+            error_messages = []
+            for field, messages in errors.items():
+                error_messages.append(f"{messages[0]}")
+
+            return Response({
+                'success': False,
+                'status': status.HTTP_400_BAD_REQUEST, 
+                'message': "\n".join(error_messages)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+
+class RemoveConnectionView(APIView):
+    permission_classes = [IsAuthenticated]
+    renderer_classes = [UserRenderer]
+
+    def delete(self, request):
+ 
+            connection_id = request.query_params.get('connection_id', None)
+
+            if connection_id is None :
+                return Response({
+                    'success': False,
+                    'status': status.HTTP_400_BAD_REQUEST, 
+                    'message': f'Connection ID are required in the request Params.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            if not connection_id.isdigit():
+                return Response({
+                    'success': False,
+                    'status': status.HTTP_400_BAD_REQUEST, 
+                    'message': f" 'id' expected a number but got {connection_id}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+            try:
+                connection_entry = Relationship.objects.get(id=connection_id)
+
+            except Relationship.DoesNotExist:
+                return Response({
+                    'success': False,
+                    'status': status.HTTP_400_BAD_REQUEST, 
+                    'message': "Invalid Connection ID"
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+
+            serializer = UserProfileEditSerializer(request.user)
+            userData=serializer.data
+            user_id = userData['id']
+            if connection_entry.person.id != user_id:
+                return Response({
+                    'success': False,
+                    'status': status.HTTP_403_FORBIDDEN, 
+                    'message': f"Not Allowed! Connected Person is not you match with you."
+                }, status=status.HTTP_400_BAD_REQUEST)
+            connection_entry.delete()
+
+            return Response({
+                    'success': True,
+                    'status': status.HTTP_200_OK, 
+                    'message': f"Connection is remove successfully with {connection_entry.related_person.full_name}"
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+class UserConnectionsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, format=None):
+        # Retrieve connections where the logged-in user appears as the person
+        connections = Relationship.objects.filter(person=request.user)
+        
+        # Serialize the connections data
+        serializer = ConnectionSerializer(connections, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class FamilyMemberSearchAPIView(APIView):
+
+    def post(self, request, format=None):
+
+        query = request.query_params.get('query', None)
+
+        if query is None  or query=="":
+                return Response({
+                    'success': False,
+                    'status': status.HTTP_400_BAD_REQUEST, 
+                    'message': f'Please Enter Your Search Keyword'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Perform search using Django ORM
+        results = FamilyMember.objects.filter(full_name__icontains=query) | \
+                  FamilyMember.objects.filter(email__icontains=query) | \
+                  FamilyMember.objects.filter(phone_no__icontains=query)
+
+        # Serialize search results
+        serializer = FamilyMemberSearchSerializer(results, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)

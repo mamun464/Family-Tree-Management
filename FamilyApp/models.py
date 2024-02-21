@@ -73,3 +73,40 @@ class FamilyMember(AbstractBaseUser, PermissionsMixin):
 
     def has_module_perms(self, app_label):
         return True
+    
+
+class Relationship(models.Model):
+    PERSON_RELATIONSHIP_CHOICES = (
+        ('Parent', 'Parent'),
+        ('Child', 'Child'),
+        ('Spouse', 'Spouse'),
+        ('Sibling', 'Sibling'),
+        ('Grandparent', 'Grandparent'),
+        ('Grandchild', 'Grandchild'),
+        ('Aunt', 'Aunt'),
+        ('Uncle', 'Uncle'),
+        ('Cousin', 'Cousin'),
+        ('Niece', 'Niece'),
+        ('Nephew', 'Nephew'),
+        ('In-Law', 'In-Law'),
+        ('Step-Parent', 'Step-Parent'),
+        ('Step-Child', 'Step-Child'),
+        ('Half-Sibling', 'Half-Sibling'),
+
+        # Add other relationship types as needed
+    )
+
+    person = models.ForeignKey(
+        'FamilyMember',
+        related_name='person_relationships',
+        on_delete=models.PROTECT
+    )
+    related_person = models.ForeignKey(
+        'FamilyMember',
+        related_name='related_person_relationships',
+        on_delete=models.CASCADE
+    )
+    relationship_type = models.CharField(max_length=100, choices=PERSON_RELATIONSHIP_CHOICES)
+
+    def __str__(self):
+        return f"{self.person} - {self.related_person} ({self.relationship_type})"

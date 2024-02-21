@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import FamilyMember
+from .models import FamilyMember,Relationship
 
 class FamilyMemberAdmin(UserAdmin):
     model = FamilyMember
@@ -24,4 +24,8 @@ class FamilyMemberAdmin(UserAdmin):
     ordering = ['email']
     filter_horizontal = ()
 
+class RelationshipAdmin(admin.ModelAdmin):
+    list_display = ['id','person', 'related_person', 'relationship_type']
+
 admin.site.register(FamilyMember, FamilyMemberAdmin)
+admin.site.register(Relationship,RelationshipAdmin)
