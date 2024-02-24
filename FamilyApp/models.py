@@ -47,8 +47,13 @@ class FamilyMember(AbstractBaseUser, PermissionsMixin):
     user_profile_img = models.URLField(blank=True,null=True)
 
     date_of_birth = models.DateField(null=False, default=date.today)
+    date_of_death = models.DateField(null=True,blank=True)
     current_address = models.CharField(max_length=255, null=False, default='')
     permanent_address = models.CharField(max_length=255, null=False, default='')
+
+    facebook = models.CharField(max_length=255, null=False, default='')
+    linkedin = models.CharField(max_length=255, null=False, default='')
+    instagram = models.CharField(max_length=255, null=False, default='')
 
     is_staff = models.BooleanField(default=False) # must needed, otherwise you won't be able to loginto django-admin.
     is_alive = models.BooleanField(default=True) # must needed, otherwise you won't be able to loginto django-admin.

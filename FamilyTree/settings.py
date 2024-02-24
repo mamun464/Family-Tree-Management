@@ -39,14 +39,22 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'FamilyApp',
+    'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
 ]
 
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_WHITELIST = [
+    'http://127.0.0.1:5173',
+    # Add other allowed origins if necessary
+]
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -105,7 +113,7 @@ DATABASES = {
 
 
 # For Live DATABASES
-DATABASES["default"] = dj_database_url.parse("postgres://familytreedb_user:tIPS1H2WwKfzJVZxd1OXDjHtDaM6SMI3@dpg-cnasl0gl6cac739pb08g-a.oregon-postgres.render.com/familytreedb")
+# DATABASES["default"] = dj_database_url.parse("postgres://familytreedb_user:tIPS1H2WwKfzJVZxd1OXDjHtDaM6SMI3@dpg-cnasl0gl6cac739pb08g-a.oregon-postgres.render.com/familytreedb")
 
 
 # Password validation

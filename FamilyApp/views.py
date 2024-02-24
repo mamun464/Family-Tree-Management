@@ -84,11 +84,16 @@ class UserLoginView(APIView):
             # Log the user in (if needed)
             login(request, user)
             token=get_tokens_for_user(user)
+
+            user_serializer = UserProfileSerializer(user)
+            user_data = user_serializer.data
+
             return Response({
                 'success': True,
                 'status': status.HTTP_200_OK,
                 'message': f'Successfully logged in',
                 'token':token,
+                'user_data': user_data,
                 },status=status.HTTP_200_OK)
 
         else:

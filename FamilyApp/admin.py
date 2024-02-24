@@ -4,7 +4,7 @@ from .models import FamilyMember,Relationship
 
 class FamilyMemberAdmin(UserAdmin):
     model = FamilyMember
-    list_display = ['id','full_name', 'email', 'phone_no','date_of_birth' ,'user_profile_img', 'is_alive','is_married','profession','current_address', 'permanent_address']
+    list_display = ['id','full_name', 'email', 'phone_no','date_of_birth' ,'user_profile_img', 'is_alive','is_married','profession','current_address', 'permanent_address','date_of_death','facebook','instagram','linkedin']
     search_fields = ['email', 'phone_no', 'full_name']
     readonly_fields = ['date_of_birth']
 
