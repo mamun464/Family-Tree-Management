@@ -165,11 +165,13 @@ class PhotoUpload(APIView):
         if 'user_profile_img' in request.data:
             # Assuming you have an image file in the request data
             image_file = request.data.get("user_profile_img")
+            print("---1--->>>>Image pack in foun from body")
 
             # Handle the case where image_file is None
             if image_file is None:
                 # If no image is provided, store None in the user_profile_img field
                 user.user_profile_img = None
+                print("---2/A--->>>>Inside package No image found")
             else:
                 # Replace 'your_api_key' with your actual ImageBB API key
                 api_key = "db34544520f57ff0f15d2b1ece2794b3"
@@ -177,6 +179,7 @@ class PhotoUpload(APIView):
 
                 # Upload the image to ImageBB
                 image_url = self.upload_to_imagebb(api_key, image_file.read())
+                print("---2--->>>>Image converted to url")
                 print("Image Url", image_url)
 
                 if image_url:
@@ -205,7 +208,14 @@ class UserProfileView(APIView):
     def get(self, request, format=None):
         serializer = UserProfileSerializer(request.user)
         
-        return Response(serializer.data,status= status.HTTP_200_OK)
+        return Response({
+                'success': True,
+                'status': status.HTTP_200_OK,
+                'message': f'Find updated profile',
+                
+                'user_data': serializer.data,
+                },status=status.HTTP_200_OK)
+        
     
 
 class UserEditView(APIView):
@@ -231,7 +241,13 @@ class UserEditView(APIView):
 
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            return Response({
+                'success': True,
+                'status': status.HTTP_200_OK,
+                'message': f'Profiles updated successfully',
+                
+                'user_data': serializer.data,
+                },status=status.HTTP_200_OK)
         
 
         else:
@@ -481,4 +497,29 @@ class FamilyMemberSearchAPIView(APIView):
         # Serialize search results
         serializer = FamilyMemberSearchSerializer(results, many=True)
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({
+                'success': True,
+                'status': status.HTTP_200_OK,
+                'message': f'All Family members',
+                
+                'user_data': serializer.data,
+                },status=status.HTTP_200_OK)
+
+class AllMemberListView(APIView):
+    # permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        # Retrieve all active users
+        active_users = FamilyMember.objects.filter(is_superuser=False)
+
+        # Serialize the active users
+        serializer = FamilyMemberSearchSerializer(active_users, many=True)
+
+        # Return the serialized data in the response
+        return Response({
+                'success': True,
+                'status': status.HTTP_200_OK,
+                'message': f'All Family members',
+                
+                'user_data': serializer.data,
+                },status=status.HTTP_200_OK)
