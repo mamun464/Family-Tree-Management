@@ -11,7 +11,7 @@ from rest_framework.permissions import IsAuthenticated,IsAdminUser
 import requests
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.db.models import ProtectedError
-
+from django.shortcuts import get_object_or_404
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
 
@@ -215,6 +215,52 @@ class UserProfileView(APIView):
                 
                 'user_data': serializer.data,
                 },status=status.HTTP_200_OK)
+        
+
+class MemberProfileView(APIView):
+    renderer_classes = [UserRenderer]
+    permission_classes = [IsAuthenticated]
+    # print("-------------->>>>MemberProfileView Get Methods")
+    def get(self, request):
+
+        required_fields = ['user_id']
+
+        for field in required_fields:
+            if field not in request.query_params or not request.query_params[field]:
+                return Response({
+                    'success': False,
+                    'status': status.HTTP_400_BAD_REQUEST,
+                    'message': f'{field} is missing or empty',
+                }, status=status.HTTP_400_BAD_REQUEST)
+               
+        user_id = request.query_params.get('user_id',None)  # Retrieve user_id from query parameters
+        if user_id is not None:
+            user = FamilyMember.objects.filter(id=user_id).first()
+            if user:
+                serializer = FamilyMemberSearchSerializer(user)
+                
+                return Response({
+                    'success': True,
+                    'status': status.HTTP_200_OK,
+                    'message': 'Success',
+                    'user_data': serializer.data,
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'success': True,
+                    'status': status.HTTP_404_NOT_FOUND,
+                    'message': 'No User found',
+                    
+                }, status=status.HTTP_404_NOT_FOUND)
+        else:
+            return Response({
+                    'success': False,
+                    'status': status.HTTP_400_BAD_REQUEST,
+                    'message': 'user_id parameter is missing',
+                    
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        
         
     
 
@@ -442,7 +488,7 @@ class RemoveConnectionView(APIView):
                 return Response({
                     'success': False,
                     'status': status.HTTP_400_BAD_REQUEST, 
-                    'message': "Invalid Connection ID"
+                    'message': "Already Deleted Or Invalid Connection ID"
                 }, status=status.HTTP_400_BAD_REQUEST)
             
 
@@ -454,26 +500,39 @@ class RemoveConnectionView(APIView):
                     'success': False,
                     'status': status.HTTP_403_FORBIDDEN, 
                     'message': f"Not Allowed! Connected Person is not you match with you."
-                }, status=status.HTTP_400_BAD_REQUEST)
+                }, status=status.HTTP_403_FORBIDDEN)
             connection_entry.delete()
 
             return Response({
                     'success': True,
                     'status': status.HTTP_200_OK, 
                     'message': f"Connection is remove successfully with {connection_entry.related_person.full_name}"
-                }, status=status.HTTP_400_BAD_REQUEST)
+                }, status=status.HTTP_200_OK)
                 
 class UserConnectionsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, format=None):
-        # Retrieve connections where the logged-in user appears as the person
-        connections = Relationship.objects.filter(person=request.user)
-        
-        # Serialize the connections data
-        serializer = ConnectionSerializer(connections, many=True)
-        
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        try:
+            # Retrieve connections where the logged-in user appears as the person
+            connections = Relationship.objects.filter(person=request.user)
+            
+            # Serialize the connections data
+            serializer = ConnectionSerializer(connections, many=True)
+            
+            return Response({
+                'success': True,
+                'status': status.HTTP_200_OK,
+                'message': 'Connections retrieved successfully',
+                'connected_person': serializer.data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'status': status.HTTP_400_BAD_REQUEST,
+                'message': 'Failed to retrieve connections',
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
     
 
 class FamilyMemberSearchAPIView(APIView):
@@ -500,7 +559,7 @@ class FamilyMemberSearchAPIView(APIView):
         return Response({
                 'success': True,
                 'status': status.HTTP_200_OK,
-                'message': f'All Family members',
+                'message': f'Your Search Results Found',
                 
                 'user_data': serializer.data,
                 },status=status.HTTP_200_OK)
@@ -523,3 +582,35 @@ class AllMemberListView(APIView):
                 
                 'user_data': serializer.data,
                 },status=status.HTTP_200_OK)
+
+class AncestorsView(APIView):
+    def get_ancestors(self, person_id, ancestors=None, visited=None):
+        if ancestors is None:
+            ancestors = []
+        if visited is None:
+            visited = set()
+
+        person = FamilyMember.objects.filter(id=person_id).first()
+        if not person:
+            return []
+
+        visited.add(person.id)
+
+        relationships = Relationship.objects.filter(person=person, relationship_type='Parent').all()
+
+        for relationship in relationships:
+            if relationship.related_person.id not in visited:
+                ancestors.append(relationship.related_person)
+                visited.add(relationship.related_person.id)
+                self.get_ancestors(relationship.related_person.id, ancestors, visited)
+
+        return ancestors
+
+    def get(self, request):
+        person_id = request.query_params.get('person_id')  # Get person_id from query parameters
+        if not person_id:
+            return Response({'error': 'person_id parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ancestors = self.get_ancestors(person_id)
+        serializer = FamilyMemberSearchSerializer(ancestors, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

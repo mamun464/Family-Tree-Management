@@ -97,17 +97,16 @@ class Relationship(models.Model):
         ('Step-Parent', 'Step-Parent'),
         ('Step-Child', 'Step-Child'),
         ('Half-Sibling', 'Half-Sibling'),
-
         # Add other relationship types as needed
     )
 
     person = models.ForeignKey(
-        'FamilyMember',
+        'FamilyMember',  # Use string representation of the model name
         related_name='person_relationships',
         on_delete=models.PROTECT
     )
     related_person = models.ForeignKey(
-        'FamilyMember',
+        'FamilyMember',  # Use string representation of the model name
         related_name='related_person_relationships',
         on_delete=models.CASCADE
     )
