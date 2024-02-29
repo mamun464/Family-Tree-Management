@@ -45,11 +45,12 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
 ]
 
-CORS_ORIGIN_ALLOW_ALL = True
-CORS_ORIGIN_WHITELIST = [
-    'http://127.0.0.1:5173',
-    # Add other allowed origins if necessary
-]
+CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ORIGIN_WHITELIST = [
+#     'http://127.0.0.1:5173',
+#     # Add other allowed origins if necessary
+# ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
