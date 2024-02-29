@@ -607,10 +607,29 @@ class AncestorsView(APIView):
         return ancestors
 
     def get(self, request):
-        person_id = request.query_params.get('person_id')  # Get person_id from query parameters
-        if not person_id:
-            return Response({'error': 'person_id parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            person_id = request.query_params.get('person_id', None)
 
-        ancestors = self.get_ancestors(person_id)
-        serializer = FamilyMemberSearchSerializer(ancestors, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+            if person_id is None  or person_id=="":
+                    return Response({
+                        'success': False,
+                        'status': status.HTTP_400_BAD_REQUEST, 
+                        'message': f'Params is Missing'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+            ancestors = self.get_ancestors(person_id)
+            serializer = FamilyMemberSearchSerializer(ancestors, many=True)
+
+            return Response({
+                'success': True,
+                'status': status.HTTP_200_OK,
+                'message': 'Ancestors Retrieved successfully',
+                'ancestors': serializer.data,
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'status': status.HTTP_500_INTERNAL_SERVER_ERROR,
+                'message': str(e),
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
