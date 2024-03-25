@@ -363,8 +363,11 @@ class UserPasswordChangeView(APIView):
         serializer = UserChangePasswordSerializer(data=request.data, context={'user': request.user})
 
         try:
+            print("before serializer test")
             serializer.is_valid(raise_exception=True)
-            serializer.save()
+            print("save hower age")
+            # serializer.save()
+            print("save hoye geche")
             return Response({
                 'success': True, 
                 'status': status.HTTP_200_OK, 
@@ -379,7 +382,7 @@ class UserPasswordChangeView(APIView):
             return Response({
                 'success': False,
                 'status': status.HTTP_400_BAD_REQUEST, 
-                'message': "\n".join(error_messages)
+                'message': "\nxxxxxxxx".join(error_messages)
             }, status=status.HTTP_400_BAD_REQUEST)
         
 
