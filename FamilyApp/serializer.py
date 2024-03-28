@@ -1,5 +1,9 @@
 from rest_framework import serializers
 from FamilyApp.models import FamilyMember,Relationship
+from django.core.exceptions import ValidationError
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.encoding import smart_str,force_bytes,DjangoUnicodeDecodeError
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django import forms
 import datetime
 from django.contrib.auth import authenticate
@@ -119,6 +123,62 @@ class UserChangePasswordSerializer(serializers.Serializer):
         user.save()
         return attrs
     
+class SendPasswordResetEmailSerializer(serializers.Serializer): 
+    email = serializers.EmailField(max_length=254)
+
+    class Meta:
+            fields = ['email']
+
+    def validate(self, attrs):
+     email = attrs.get('email')
+     if FamilyMember.objects.filter(email=email).exists():
+        user= FamilyMember.objects.get(email=email)
+        EncodedUserId = urlsafe_base64_encode(force_bytes(user.id))
+        # print(EncodedUserId)
+        token = PasswordResetTokenGenerator().make_token(user)
+        # print('Password ResetToken:',token)
+        # # PassResetLink = 'http://127.0.0.1:8000/api/user/rest-password/'+EncodedUserId+'/'+token+'/'
+        # print('PassResetLink:',PassResetLink)
+
+        attrs['EncodedUserId'] = EncodedUserId
+        attrs['token'] = token
+        attrs['name'] = user.full_name
+        
+        return attrs
+     else:
+        raise ValidationError("Email not registered in central Database !")
+
+class UserPasswordRestSerializer(serializers.Serializer):
+    password = serializers.CharField(style={'input_type': 'password'}, write_only=True)
+    password2 = serializers.CharField(style={'input_type': 'password'}, write_only=True)
+     
+    class Meta:
+            fields = ['password', 'password2']
+    def validate(self, attrs):
+        try:
+            password = attrs.get('password')
+            password2 = attrs.get('password2')
+
+            encodedID = self.context.get('uid')
+            token = self.context.get('token')
+
+            if(password != password2):
+                raise ValidationError("Confirm password not match with password!")
+            
+
+            decodeID = smart_str(urlsafe_base64_decode(encodedID))
+
+            print("Decoded Id: ",decodeID)
+            
+            user= FamilyMember.objects.get(id=decodeID)
+            if not PasswordResetTokenGenerator().check_token(user,token):
+                raise ValidationError("Link already used or invalid")
+            user.set_password(password)
+            user.save()
+            return attrs
+        except DjangoUnicodeDecodeError as identifier:
+            PasswordResetTokenGenerator().check_token(user,token)
+            raise ValidationError("Token is not Valid or Expired")
 
 class CreateConnectionSerializer(serializers.ModelSerializer):
     # related_person = serializers.PrimaryKeyRelatedField(queryset=FamilyMember.objects.all())

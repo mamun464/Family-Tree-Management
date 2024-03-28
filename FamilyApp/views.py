@@ -1,6 +1,6 @@
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
-from FamilyApp.serializer import UserRegistrationSerializer ,UserLoginSerializer,UserProfileEditSerializer,UserProfileSerializer,UserChangePasswordSerializer,CreateConnectionSerializer,ConnectionSerializer,FamilyMemberSearchSerializer
+from FamilyApp.serializer import UserRegistrationSerializer ,UserLoginSerializer,UserProfileEditSerializer,UserProfileSerializer,UserChangePasswordSerializer,CreateConnectionSerializer,ConnectionSerializer,FamilyMemberSearchSerializer,SendPasswordResetEmailSerializer,UserPasswordRestSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from FamilyApp.renderers import UserRenderer
@@ -9,6 +9,7 @@ from django.contrib.auth import authenticate,login
 from FamilyApp.models import FamilyMember,Relationship
 from rest_framework.permissions import IsAuthenticated,IsAdminUser
 import requests
+from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404
@@ -382,9 +383,88 @@ class UserPasswordChangeView(APIView):
             return Response({
                 'success': False,
                 'status': status.HTTP_400_BAD_REQUEST, 
-                'message': "\nxxxxxxxx".join(error_messages)
+                'message': "\n".join(error_messages)
             }, status=status.HTTP_400_BAD_REQUEST)
         
+
+class SendPasswordResetEmailView(APIView):
+    renderer_classes = [UserRenderer]
+
+    def post(self, request, format=None):
+        required_fields = ['email']
+        for field in required_fields:
+            if field not in request.data or not request.data[field]:
+                return Response({
+                    'success': False,
+                    'status': status.HTTP_400_BAD_REQUEST,
+                    'message': f'{field} is missing or empty',
+                }, status=status.HTTP_400_BAD_REQUEST)  
+
+        serializer = SendPasswordResetEmailSerializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+            user_data = serializer.validated_data
+            EncodedUserId = user_data['EncodedUserId']
+            token = user_data['token']
+            
+
+            # Process valid data
+            return Response({
+                'success': True,
+                'status': status.HTTP_200_OK,
+                'message': 'Password Reset Link Sent to Your Registered Email. Please Check.',
+                'EncodedUserId': EncodedUserId,
+                'token': token,
+                
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            errors = serializer.errors
+            error_messages = []
+            for field, messages in errors.items():
+                error_messages.append(f"{messages[0]}")
+
+            return Response({
+                'success': False,
+                'status': status.HTTP_400_BAD_REQUEST, 
+                'message':"\n".join(error_messages)
+                
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+class UserPasswordResetView(APIView):
+    renderer_classes = [UserRenderer]
+    def post(self, request,uid,token, format=None):
+        required_fields = ['password','password2']
+        for field in required_fields:
+            if field not in request.data or not request.data[field]:
+                return Response({
+                    'success': False,
+                    'status': status.HTTP_400_BAD_REQUEST,
+                    'message': f'{field} is missing or empty',
+                }, status=status.HTTP_400_BAD_REQUEST)  
+        serializer = UserPasswordRestSerializer(data=request.data,context={'uid':uid, 'token':token})
+        try:
+            serializer.is_valid(raise_exception=True)
+            
+            # Process valid data
+            return Response({
+                'success': True,
+                'status': status.HTTP_200_OK,
+                'message': 'Password Change Successfully',
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            errors = serializer.errors
+            error_messages = []
+            for field, messages in errors.items():
+                error_messages.append(f"{messages[0]}")
+
+            return Response({
+                'success': False,
+                'status': status.HTTP_400_BAD_REQUEST, 
+                'message':"\n".join(error_messages)
+                
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 class CreateConnectionView(APIView):
     permission_classes = [IsAuthenticated]
@@ -467,9 +547,7 @@ class RemoveConnectionView(APIView):
     renderer_classes = [UserRenderer]
 
     def delete(self, request):
- 
             connection_id = request.query_params.get('connection_id', None)
-
             if connection_id is None :
                 return Response({
                     'success': False,

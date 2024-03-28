@@ -2,7 +2,7 @@
 # from django.contrib import admin
 from django.urls import path
 # from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView,TokenVerifyView
-from FamilyApp.views import UserRegistrationView,UserLoginView,PhotoUpload,UserProfileView,UserEditView,UserDeleteView,RemoveConnectionView,UserPasswordChangeView,CreateConnectionView,UserConnectionsView,FamilyMemberSearchAPIView,AllMemberListView,MemberProfileView,AncestorsView
+from FamilyApp.views import UserRegistrationView,UserLoginView,PhotoUpload,UserProfileView,UserEditView,UserDeleteView,RemoveConnectionView,UserPasswordChangeView,CreateConnectionView,UserConnectionsView,FamilyMemberSearchAPIView,AllMemberListView,MemberProfileView,AncestorsView,SendPasswordResetEmailView,UserPasswordResetView
 
 urlpatterns = [
     path('register/', UserRegistrationView.as_view(),name='register'),
@@ -14,6 +14,8 @@ urlpatterns = [
     path('update/', UserEditView.as_view(),name='edit-user'),
     path('delete/', UserDeleteView.as_view(),name='delete-user'),
     path('changepassword/', UserPasswordChangeView.as_view(),name='passwordChange'),
+    path('send-reset-password-email/', SendPasswordResetEmailView.as_view(),name='send-rest-password-email'),
+    path('rest-password/<uid>/<token>/', UserPasswordResetView.as_view(),name='rest-password'),
     path('create-connection/', CreateConnectionView.as_view(), name='create_connection'),
     path('disconnected/', RemoveConnectionView.as_view(), name='remove_connection'),
     path('member-connections/', UserConnectionsView.as_view(), name='user_connections'),
