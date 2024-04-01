@@ -406,6 +406,7 @@ class SendPasswordResetEmailView(APIView):
             user_data = serializer.validated_data
             EncodedUserId = user_data['EncodedUserId']
             token = user_data['token']
+            user_name = user_data['name']
             
 
             # Process valid data
@@ -413,8 +414,10 @@ class SendPasswordResetEmailView(APIView):
                 'success': True,
                 'status': status.HTTP_200_OK,
                 'message': 'Password Reset Link Sent to Your Registered Email. Please Check.',
+                'user_name': user_name,
                 'EncodedUserId': EncodedUserId,
                 'token': token,
+                
                 
             }, status=status.HTTP_200_OK)
 
