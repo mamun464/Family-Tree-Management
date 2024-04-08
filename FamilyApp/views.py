@@ -446,7 +446,7 @@ class UserPasswordResetView(APIView):
                     'message': f'{field} is missing or empty',
                 }, status=status.HTTP_400_BAD_REQUEST)  
         serializer = UserPasswordRestSerializer(data=request.data,context={'uid':uid, 'token':token})
-        try:
+        if serializer.is_valid():
             serializer.is_valid(raise_exception=True)
             
             # Process valid data
@@ -456,7 +456,7 @@ class UserPasswordResetView(APIView):
                 'message': 'Password Change Successfully',
             }, status=status.HTTP_200_OK)
 
-        except Exception as e:
+        else:
             errors = serializer.errors
             error_messages = []
             for field, messages in errors.items():
@@ -465,7 +465,7 @@ class UserPasswordResetView(APIView):
             return Response({
                 'success': False,
                 'status': status.HTTP_400_BAD_REQUEST, 
-                'message':"\n".join(error_messages)
+                'message': "\n".join(error_messages)
                 
             }, status=status.HTTP_400_BAD_REQUEST)
 
