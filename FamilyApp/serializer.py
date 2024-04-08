@@ -163,7 +163,7 @@ class UserPasswordRestSerializer(serializers.Serializer):
             token = self.context.get('token')
 
             if(password != password2):
-                raise ValidationError("Confirm password not match with password!")
+                raise ValidationError("Confirm password does not match with password!")
             
 
             decodeID = smart_str(urlsafe_base64_decode(encodedID))
@@ -172,14 +172,25 @@ class UserPasswordRestSerializer(serializers.Serializer):
             
             user= FamilyMember.objects.get(id=decodeID)
             if not PasswordResetTokenGenerator().check_token(user,token):
-                raise ValidationError("Link already used or invalid")
+                raise ValidationError("Link already used  or invalid")
             user.set_password(password)
             user.save()
             return attrs
         except DjangoUnicodeDecodeError as identifier:
-            PasswordResetTokenGenerator().check_token(user,token)
-            raise ValidationError("Token is not Valid or Expired")
-
+            # PasswordResetTokenGenerator().check_token(user,token)
+            # error_message = identifier.message
+            raise ValidationError("Any special characters or symbols that might be causing the issue with removing or replacing them.")
+        except ValueError as ve:
+            # Handle ValueError
+            raise ValidationError(f"Invalid data formats that may cause problems with removing or replacing them")
+        except ValidationError as ve:
+            error_message = ve.message
+            raise ValidationError(error_message)
+        except Exception as e:
+            # error_type = type(e).__name__
+            
+            raise ValidationError(e)
+            # raise ValidationError(f"Unknown Error2:{e}")
 class CreateConnectionSerializer(serializers.ModelSerializer):
     # related_person = serializers.PrimaryKeyRelatedField(queryset=FamilyMember.objects.all())
 
