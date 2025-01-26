@@ -13,6 +13,7 @@ from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404
+from FamilyApp.helper import Helper
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
 
@@ -27,7 +28,7 @@ class UserRegistrationView(APIView):
 
         serializer = UserRegistrationSerializer(data=request.data)
 
-        required_fields = ['full_name', 'email', 'phone_no','date_of_birth','password', 'password2']
+        required_fields = ['full_name', 'email', 'phone_no','gender','password', 'password2']
         for field in required_fields:
             if field not in request.data or not request.data[field]:
                 return Response({
@@ -667,6 +668,58 @@ class AllMemberListView(APIView):
                 'user_data': serializer.data,
                 },status=status.HTTP_200_OK)
 
+class FamilyTreeAPIView(APIView):
+    def get(self, request):
+
+        required_fields = ['person_id']
+        for field in required_fields:
+            if field not in request.query_params or not request.query_params[field]:
+                return Response({
+                    'success': False,
+                    'status': status.HTTP_400_BAD_REQUEST,
+                    'message': f'{field} is missing or empty in the params',
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        person_id = request.query_params.get('person_id')
+
+        try:
+            member = FamilyMember.objects.get(pk=person_id)
+        except FamilyMember.DoesNotExist:
+            return Response({
+                'success': False,
+                'status': status.HTTP_404_NOT_FOUND,
+                'message': 'member not found with this id.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # Fetch ancestors and descendants
+        ancestors = Helper.get_ancestors(member)
+        descendants = Helper.get_descendants(member)
+
+        return Response({
+                'success': True,
+                'status': status.HTTP_200_OK,
+                'message': 'Ancestors Retrieved successfully',
+                'data': {
+                            'member': {
+                                'full_name': member.full_name,
+                                'user_profile_img': member.user_profile_img,
+                                'email': member.email,
+                            },
+                            'ancestors': ancestors,
+                            'descendants': descendants
+                        }
+            }, status=status.HTTP_200_OK)
+
+        # return Response({
+        #     'member': {
+        #         'full_name': member.full_name,
+        #         'user_profile_img': member.user_profile_img,
+        #         'email': member.email,
+        #     },
+        #     'ancestors': ancestors,
+        #     'descendants': descendants
+        # }, status=status.HTTP_200_OK)
+
 class AncestorsView(APIView):
     def get_ancestors(self, person_id, ancestors=None, visited=None):
         if ancestors is None:
@@ -689,6 +742,7 @@ class AncestorsView(APIView):
                 self.get_ancestors(relationship.related_person.id, ancestors, visited)
 
         return ancestors
+    
 
     def get(self, request):
         try:

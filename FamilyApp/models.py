@@ -44,8 +44,9 @@ class FamilyMember(AbstractBaseUser, PermissionsMixin):
     phone_no = models.CharField(db_index=True, max_length=20, null=False, unique=True)
     place_of_birth = models.CharField(max_length=100, blank=True)
     profession = models.CharField(max_length=100, blank=True)
+    gender = models.CharField(max_length=10)
 
-    date_of_birth = models.DateField(null=False, default=date.today)
+    date_of_birth = models.DateField(null=True, blank=True)
     date_of_death = models.DateField(null=True,blank=True)
     current_address = models.CharField(max_length=255, blank=True, default='')
     permanent_address = models.CharField(max_length=255, blank=True, default='')

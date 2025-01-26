@@ -2,7 +2,7 @@
 # from django.contrib import admin
 from django.urls import path
 # from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView,TokenVerifyView
-from FamilyApp.views import UserRegistrationView,UserLoginView,PhotoUpload,UserProfileView,UserEditView,UserDeleteView,RemoveConnectionView,UserPasswordChangeView,CreateConnectionView,UserConnectionsView,FamilyMemberSearchAPIView,AllMemberListView,MemberProfileView,AncestorsView,SendPasswordResetEmailView,UserPasswordResetView
+from FamilyApp.views import *
 
 urlpatterns = [
     path('register/', UserRegistrationView.as_view(),name='register'),
@@ -21,6 +21,7 @@ urlpatterns = [
     path('member-connections/', UserConnectionsView.as_view(), name='user_connections'),
     path('search/', FamilyMemberSearchAPIView.as_view(), name='family_member_search'),
     path('ancestors/', AncestorsView.as_view(), name='ancestors'),
+    path('tree/', FamilyTreeAPIView.as_view(), name='tree'),
 
     # path('event-register/', EventEnrollmentView.as_view(), name='event-register'),
     # path('event-deregister/', EventDeregistration.as_view(), name='event-deregister'),
