@@ -19,7 +19,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FamilyMember
-        fields = ['full_name', 'email', 'phone_no','date_of_birth','password', 'password2']
+        fields = ['full_name', 'email', 'phone_no','gender','password', 'password2']
         extra_kwargs = {
             'password':{'write_only':True}
         }
