@@ -115,7 +115,8 @@ DATABASES = {
 
 
 # For Live DATABASES
-DATABASES["default"] = dj_database_url.parse("postgresql://mamun_464:Pse9TNyQMZhxQaYjFCvDkAAjUYZXloJY@dpg-cua99j1opnds73eb2ql0-a.oregon-postgres.render.com/family_tree_ltcs")
+# DATABASES["default"] = dj_database_url.parse("postgresql://mamun_464:Pse9TNyQMZhxQaYjFCvDkAAjUYZXloJY@dpg-cua99j1opnds73eb2ql0-a.oregon-postgres.render.com/family_tree_ltcs")
+DATABASES["default"] = dj_database_url.parse("postgresql://mamun464:Mamun&464@family-tree-db.cl468yamyetp.eu-north-1.rds.amazonaws.com/family_tree_db")
 
 
 # Password validation
